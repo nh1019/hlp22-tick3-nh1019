@@ -100,7 +100,7 @@ is quite easy for novice F# programmers to write this.
 
 /// returns true if the coordinate (X or Y) in common between the two side endpoints is positive
 /// relative to the rectangle position
-let sideHasPositiveCommonCoordinateOffset side =
+let commonCoordinate side =
     side = 0 || side = 1
 
 /// Return the two side endpoint sets of coordinates
@@ -133,7 +133,7 @@ let subtractFromX1OrY1 direction x y x1 y1  =
 let doSubtraction (thing: Thing) side x y =
     let cc1,cc2 = getCoordinates side thing.X thing.Y thing.X1 thing.X2
     let d = subtractFromX1OrY1 (side % 2 = 1) x y (fst cc1) (snd cc1) 
-    let sign = if sideHasPositiveCommonCoordinateOffset side then 1. else -1.
+    let sign = if commonCoordinate side then 1. else -1.
     let offset = sign * d * 2.0
     match side % 2 with
     | 0 | 2 -> offset, 0.
@@ -186,6 +186,14 @@ let lineParas: Line = {
     StrokeDashArray = "" //default solid line
 }
 
+///sample parameters for drawing polygon
+let polygonParas: Polygon = {
+    Stroke = "red"
+    StrokeWidth = "2px"
+    FillOpacity = 0.0
+    Fill = ""
+}
+
 /// draw a thing centred on (0,0)
 /// r: true => thing is circle, false => thing is rectangle
 /// x1,x2 fields X1, X2 from thing to be drawn of same name
@@ -193,10 +201,16 @@ let lineParas: Line = {
 /// the result must be returned as a list of SVG elements
 let doDrawing r x1 x2 : ReactElement list=
     // see DrawHelpers for some examples of how to draw.
-    // use empty lits here drawing nothing to allow app to run initially
-    // more correctlky should be failwithf "not implemented"
-    [] // failwithf "Not implemented"
-        
+    // use empty lists here drawing nothing to allow app to run initially
+    // more correctly should be failwithf "not implemented"
+    ///let polygonPoints = $"{0.},{0.} {x1},{0.} {x1},{x2} {0.},{x2}" 
+    match r with 
+    | true -> [makeCircle 0. 0. {circParas with R = x1 /2.0}]
+    | false -> [makeLine (x1/2.) (x2/2.) (x1/2.) (-x2/2.) lineParas;
+                makeLine (-x1/2.) (x2/2.) (-x1/2.) (-x2/2.) lineParas;
+                makeLine (x1/2.) (x2/2.) (-x1/2.) (x2/2.) lineParas;
+                makeLine (x1/2.) (-x2/2.) (-x1/2.) (-x2/2.) lineParas]
+    
 
 /// display as a single SVG element the Thing defined by ThingProps
 let renderThing =        
