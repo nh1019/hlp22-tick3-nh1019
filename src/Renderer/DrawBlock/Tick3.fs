@@ -98,11 +98,6 @@ It is obvious, looking at this code not having written it, that it is bad. Howev
 is quite easy for novice F# programmers to write this.
 *)
 
-/// returns true if the coordinate (X or Y) in common between the two side endpoints is positive
-/// relative to the rectangle position
-let commonCoordinate side =
-    side = 0 || side = 1
-
 /// Return the two side endpoint sets of coordinates
 /// for side s of rectangle center (c1,c2), width x1, height x2
 /// The most positive end must be first
@@ -120,7 +115,8 @@ let getCoordinates s c1 c2 x1 x2 =
 // direction = true => horizontal side
 // (x1,y1): side end point (either will do)
 // (x,y) current mouse pos
-let subtractFromX1OrY1 direction x y x1 y1  =
+// changed name to decideSubtraction
+let decideSubtraction direction x y x1 y1  =
     if direction then y - y1 else x - x1
 
 // return movement needed when dragging to change the size of a rectangle thing
@@ -131,13 +127,14 @@ let subtractFromX1OrY1 direction x y x1 y1  =
 // side = side that is being dragged by mouse
 // thing = rectangle
 let doSubtraction (thing: Thing) side x y =
-    let cc1,cc2 = getCoordinates side thing.X thing.Y thing.X1 thing.X2
-    let d = subtractFromX1OrY1 (side % 2 = 1) x y (fst cc1) (snd cc1) 
-    let sign = if commonCoordinate side then 1. else -1.
+    let cc1, _ = getCoordinates side thing.X thing.Y thing.X1 thing.X2
+    let d = decideSubtraction (side % 2 = 1) x y (fst cc1) (snd cc1) 
+    let sign = if side = 0 || side = 1 then 1. else -1.
     let offset = sign * d * 2.0
     match side % 2 with
-    | 0 | 2 -> offset, 0.
-    | 1 | 3 -> 0., offset
+    ///took away the option to match with 2 and 3
+    | 0 -> offset, 0.
+    | 1 -> 0., offset
 
 /// Alter size of currently dragged thing to make its edge (or its clicked side) follow pos
 /// For circles the circle should go through pos
@@ -200,16 +197,16 @@ let polygonParas: Polygon = {
 /// x1 is diameter - not radius - of circle
 /// the result must be returned as a list of SVG elements
 let doDrawing r x1 x2 : ReactElement list=
-    // see DrawHelpers for some examples of how to draw.
-    // use empty lists here drawing nothing to allow app to run initially
-    // more correctly should be failwithf "not implemented"
+    ///create mid points to make line constructions more readable
+    let x1mid = x1/2.
+    let x2mid = x2/2.
     ///let polygonPoints = $"{0.},{0.} {x1},{0.} {x1},{x2} {0.},{x2}" 
     match r with 
-    | true -> [makeCircle 0. 0. {circParas with R = x1 /2.0}]
-    | false -> [makeLine (x1/2.) (x2/2.) (x1/2.) (-x2/2.) lineParas;
-                makeLine (-x1/2.) (x2/2.) (-x1/2.) (-x2/2.) lineParas;
-                makeLine (x1/2.) (x2/2.) (-x1/2.) (x2/2.) lineParas;
-                makeLine (x1/2.) (-x2/2.) (-x1/2.) (-x2/2.) lineParas]
+    | true -> [makeCircle 0. 0. {circParas with R = x1mid}]
+    | false -> [makeLine x1mid x2mid x1mid (-x2mid) lineParas;
+                makeLine (-x1mid) x2mid (-x1mid) (-x2mid) lineParas;
+                makeLine x1mid x2mid (-x1mid) x2mid lineParas;
+                makeLine x1mid (-x2mid) (-x1mid) (-x2mid) lineParas]
     
 
 /// display as a single SVG element the Thing defined by ThingProps
